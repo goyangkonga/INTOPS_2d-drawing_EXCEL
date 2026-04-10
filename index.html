@@ -1,14 +1,842 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>도면 치수 추출기 — Drawing Dimension Extractor</title>
-    <meta name="description" content="2D PDF 도면을 업로드하면 Gemini AI가 치수를 자동 분석하여 Excel 파일로 다운로드할 수 있습니다." />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📐 도면 치수 추출기</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- SheetJS (xlsx) CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Lucide icons CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    body { font-family: 'Segoe UI', 'Noto Sans KR', sans-serif; }
+
+    /* Drag over highlight */
+    .drag-over { border-color: #3b82f6 !important; background: #eff6ff !important; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+
+    /* Fade-in rows */
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    .fade-in { animation: fadeIn .25s ease both; }
+
+    /* Editable cell */
+    .editable-cell {
+      background: transparent;
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 0.75rem;
+      padding: 0;
+      min-width: 50px;
+    }
+    .editable-cell:focus {
+      background: #f0f9ff;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 10px 18px; border-radius: 10px;
+      font-size: 0.8rem; font-weight: 600;
+      color: white; background: #1e293b;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s;
+      transform: translateY(8px);
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: none; }
+
+    /* Modal backdrop */
+    #modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.5);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-backdrop.open { display: flex; }
+
+    /* Progress bar */
+    @keyframes progress { 0%{width:5%} 60%{width:85%} 100%{width:95%} }
+    .progress-bar { animation: progress 20s ease forwards; }
+
+    /* Table row hover */
+    .dim-row:hover { background: #f8fafc; }
+    .dim-row:hover .del-btn { opacity: 1 !important; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-blue-600 rounded-lg p-2 shadow">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="text-sm font-bold leading-none">도면 치수 추출기</div>
+        <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">Drawing Dimension Extractor · Gemini AI</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="excel-btn" onclick="exportExcel()"
+        class="hidden items-center gap-2 px-3 py-1.5 text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 rounded-lg transition-colors">
+        <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Excel 다운로드
+      </button>
+      <button id="api-key-btn" onclick="openSettings()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+        title="API 키 설정">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        API 키 설정
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════ API KEY WARNING ═══════════════════ -->
+<div id="api-warning" class="bg-amber-50 border-b border-amber-200">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-2.5 flex items-center gap-2 text-amber-700 text-xs">
+    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <span>
+      Gemini API 키가 설정되지 않았습니다.
+      <button onclick="openSettings()" class="font-bold underline ml-1">지금 설정하기 →</button>
+    </span>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<main class="max-w-7xl mx-auto px-4 md:px-6 py-8">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- ── LEFT PANEL ── -->
+    <div class="lg:col-span-4 space-y-5">
+
+      <!-- Upload Card -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <h2 class="text-sm font-bold flex items-center gap-2">
+          <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          PDF 도면 업로드
+        </h2>
+
+        <!-- Drop Zone -->
+        <div id="drop-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="onDragOver(event)"
+          ondragleave="onDragLeave(event)"
+          ondrop="onDrop(event)"
+          class="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-3
+                 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-all min-h-[160px]">
+          <input type="file" id="file-input" accept=".pdf" class="hidden" onchange="onFileSelect(event)" />
+          <div id="drop-icon" class="bg-slate-100 text-slate-400 p-3 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div id="drop-text" class="text-center">
+            <p class="text-sm font-semibold text-slate-700">클릭 또는 드래그 앤 드롭</p>
+            <p class="text-xs text-slate-400 mt-1">PDF 파일만 지원</p>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="error-box" class="hidden p-3 bg-red-50 border border-red-100 rounded-lg flex gap-2 text-red-600">
+          <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p id="error-text" class="text-xs leading-relaxed"></p>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="progress-wrap" class="hidden space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] font-semibold text-blue-600">AI 분석 중...</span>
+            <span id="progress-label" class="text-[10px] text-slate-400">잠시만 기다려주세요</span>
+          </div>
+          <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div id="progress-fill" class="progress-bar h-full bg-blue-500 rounded-full"></div>
+          </div>
+        </div>
+
+        <!-- Extract Button -->
+        <button id="extract-btn" onclick="processDrawing()"
+          class="hidden w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
+                 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+          <span id="extract-btn-text">치수 추출 시작</span>
+        </button>
+      </div>
+
+      <!-- How it works -->
+      <div class="bg-slate-900 text-slate-400 p-5 rounded-xl shadow-lg">
+        <h3 class="text-white text-sm font-bold mb-4">사용 방법</h3>
+        <ol class="space-y-3 text-xs">
+          <li class="flex gap-3">
+            <span class="text-slate-600 font-mono shrink-0">01</span>
+            <p>우측 상단 <strong class="text-slate-300">「API 키 설정」</strong>에서 Gemini API 키 입력</p>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-slate-600 font-mono shrink-0">02</span>
+            <p>2D PDF 도면 파일 업로드 (드래그 또는 클릭)</p>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-slate-600 font-mono shrink-0">03</span>
+            <p><strong class="text-slate-300">「치수 추출 시작」</strong> 클릭 → AI가 자동 분석</p>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-slate-600 font-mono shrink-0">04</span>
+            <p>결과 테이블에서 직접 수정 가능</p>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-slate-600 font-mono shrink-0">05</span>
+            <p><strong class="text-slate-300">「Excel 다운로드」</strong>로 .xlsx 저장</p>
+          </li>
+        </ol>
+        <div class="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-600">
+          API 키는 브라우저 localStorage에만 저장 · 외부 서버 전송 없음
+        </div>
+      </div>
+
+      <!-- Mobile Excel button -->
+      <button id="excel-btn-mobile" onclick="exportExcel()"
+        class="hidden w-full lg:hidden py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white text-sm
+               font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Excel 다운로드
+      </button>
+    </div>
+
+    <!-- ── RIGHT PANEL: Result Table ── -->
+    <div class="lg:col-span-8">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+
+        <!-- Table header -->
+        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/>
+            </svg>
+            <span class="text-sm font-bold">치수 목록</span>
+            <span id="row-count" class="hidden bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full"></span>
+          </div>
+          <button id="add-row-btn" onclick="addRow()"
+            class="hidden items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600
+                   hover:bg-slate-100 rounded-lg transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            행 추가
+          </button>
+        </div>
+
+        <!-- Scrollable table area -->
+        <div class="flex-1 overflow-auto">
+          <!-- Empty state -->
+          <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 p-12 text-center min-h-[400px]">
+            <div class="bg-slate-50 p-4 rounded-full mb-4">
+              <svg class="w-8 h-8 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/>
+              </svg>
+            </div>
+            <p class="text-sm font-semibold text-slate-600">아직 분석 결과가 없습니다</p>
+            <p class="text-xs mt-1 max-w-[220px]">PDF 도면을 업로드하고 API 키를 설정한 후<br>「치수 추출 시작」을 클릭하세요.</p>
+          </div>
+
+          <!-- Loading state -->
+          <div id="loading-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 p-12 text-center min-h-[400px]">
+            <div class="relative mb-4">
+              <svg class="w-12 h-12 text-slate-200 spin" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <svg class="w-5 h-5 text-slate-400 absolute inset-0 m-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <p class="text-sm font-semibold text-slate-600">도면 분석 중...</p>
+            <p class="text-xs text-slate-400 mt-1">도면 복잡도에 따라 10~30초 소요됩니다</p>
+          </div>
+
+          <!-- Data table -->
+          <table id="dim-table" class="hidden w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">#</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">항목명 (Label)</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">기준값</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">단위</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">공차</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap text-green-600">Max</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap text-blue-600">Min</th>
+                <th class="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">비고</th>
+                <th class="w-8"></th>
+              </tr>
+            </thead>
+            <tbody id="dim-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Table footer -->
+        <div id="table-footer" class="hidden px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <p class="text-[10px] text-slate-400">셀을 클릭하여 직접 수정 가능합니다</p>
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-[10px] font-bold text-slate-500">분석 완료</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="max-w-7xl mx-auto px-4 md:px-6 py-6 border-t border-slate-200 mt-4">
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+    <span>© 2026 Drawing Dimension Extractor · Powered by Gemini AI</span>
+    <div class="flex items-center gap-4">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="hover:text-slate-700 transition-colors">API 키 발급 (무료)</a>
+      <a href="https://ai.google.dev/gemini-api/docs" target="_blank" rel="noopener noreferrer" class="hover:text-slate-700 transition-colors">Gemini API 문서</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════ SETTINGS MODAL ═══════════════════ -->
+<div id="modal-backdrop" class="modal-backdrop" onclick="handleBackdropClick(event)">
+  <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <!-- Modal header -->
+    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+        </svg>
+        <h3 class="font-bold text-sm">API 키 설정</h3>
+      </div>
+      <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-slate-100">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-5">
+      <!-- Key input -->
+      <div class="space-y-2">
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Gemini API Key</label>
+        <div class="relative">
+          <input type="password" id="api-key-input"
+            placeholder="AIzaSy..."
+            class="w-full pr-16 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm
+                   focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
+          <button onclick="toggleKeyVisibility()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 hover:text-slate-700 font-medium">
+            표시
+          </button>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div class="flex gap-2.5 p-3 bg-blue-50 rounded-lg border border-blue-100">
+        <svg class="w-4 h-4 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="text-[11px] text-blue-700 leading-relaxed space-y-1">
+          <p>API 키는 <strong>브라우저 localStorage</strong>에만 저장됩니다. 서버로 전송되지 않습니다.</p>
+          <p>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
+              class="underline font-bold">Google AI Studio에서 무료 발급 →</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Save button -->
+      <button onclick="saveApiKey()"
+        class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors
+               flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        저장하기
+      </button>
+
+      <!-- Clear button -->
+      <button onclick="clearApiKey()"
+        class="w-full py-2 text-xs text-red-400 hover:text-red-600 transition-colors">
+        저장된 키 삭제
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ═══════════════════ SCRIPT ═══════════════════ -->
+<script>
+// ─── State ───────────────────────────────────────────
+let currentFile = null;
+let dimensions  = [];
+let apiKey      = '';
+
+// ─── Init ────────────────────────────────────────────
+(function init() {
+  apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
+  updateApiKeyUI();
+})();
+
+// ─── API Key UI ──────────────────────────────────────
+function updateApiKeyUI() {
+  const warning = document.getElementById('api-warning');
+  const btn     = document.getElementById('api-key-btn');
+  if (apiKey) {
+    warning.style.display = 'none';
+    btn.className = btn.className.replace(/text-\w+-\d+|bg-\w+-\d+/g, '');
+    btn.classList.add('text-green-700', 'bg-green-50', 'hover:bg-green-100');
+  } else {
+    warning.style.display = '';
+    btn.classList.remove('text-green-700', 'bg-green-50', 'hover:bg-green-100');
+    btn.classList.add('text-red-600', 'bg-red-50', 'hover:bg-red-100');
+  }
+}
+
+// ─── Settings Modal ──────────────────────────────────
+function openSettings() {
+  document.getElementById('api-key-input').value = apiKey;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+}
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modal-backdrop')) closeSettings();
+}
+function toggleKeyVisibility() {
+  const input = document.getElementById('api-key-input');
+  const btn   = input.nextElementSibling;
+  if (input.type === 'password') { input.type = 'text';     btn.textContent = '숨기기'; }
+  else                           { input.type = 'password'; btn.textContent = '표시';   }
+}
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showToast('API 키를 입력해주세요.', 'error'); return; }
+  apiKey = key;
+  localStorage.setItem('GEMINI_API_KEY', key);
+  updateApiKeyUI();
+  closeSettings();
+  showToast('API 키가 저장되었습니다. ✓', 'success');
+}
+function clearApiKey() {
+  if (!confirm('저장된 API 키를 삭제하시겠습니까?')) return;
+  apiKey = '';
+  localStorage.removeItem('GEMINI_API_KEY');
+  document.getElementById('api-key-input').value = '';
+  updateApiKeyUI();
+  closeSettings();
+  showToast('API 키가 삭제되었습니다.', 'info');
+}
+
+// ─── File Handling ───────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function onDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+}
+
+function handleFile(file) {
+  if (file.type !== 'application/pdf') {
+    showError('PDF 파일만 업로드할 수 있습니다.');
+    return;
+  }
+  currentFile = file;
+  hideError();
+  resetTable();
+
+  // Update drop zone UI
+  const icon = document.getElementById('drop-icon');
+  const text = document.getElementById('drop-text');
+  icon.className = 'bg-green-100 text-green-600 p-3 rounded-full';
+  icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>`;
+  text.innerHTML = `<p class="text-sm font-semibold text-slate-700 break-all max-w-[200px]">${file.name}</p>
+                    <p class="text-xs text-slate-400 mt-1">${(file.size/1024).toFixed(1)} KB
+                    <button onclick="clearFile(event)" class="text-red-400 hover:underline ml-2">변경</button></p>`;
+
+  // Show extract button
+  const btn = document.getElementById('extract-btn');
+  btn.classList.remove('hidden');
+  btn.classList.add('flex');
+}
+
+function clearFile(e) {
+  if(e) e.stopPropagation();
+  currentFile = null;
+  document.getElementById('file-input').value = '';
+
+  const icon = document.getElementById('drop-icon');
+  const text = document.getElementById('drop-text');
+  icon.className = 'bg-slate-100 text-slate-400 p-3 rounded-full';
+  icon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+  </svg>`;
+  text.innerHTML = `<p class="text-sm font-semibold text-slate-700">클릭 또는 드래그 앤 드롭</p>
+                    <p class="text-xs text-slate-400 mt-1">PDF 파일만 지원</p>`;
+
+  const btn = document.getElementById('extract-btn');
+  btn.classList.add('hidden');
+  btn.classList.remove('flex');
+  resetTable();
+}
+
+// ─── File → Base64 ───────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+  });
+}
+
+// ─── Main: Process Drawing ────────────────────────────
+async function processDrawing() {
+  if (!currentFile) return;
+  if (!apiKey) {
+    showError('API 키가 설정되지 않았습니다. 우측 상단 「API 키 설정」을 클릭해 주세요.');
+    openSettings();
+    return;
+  }
+
+  // UI: loading
+  setLoading(true);
+  hideError();
+
+  try {
+    const base64 = await fileToBase64(currentFile);
+
+    // ── Gemini API call (fetch, no SDK needed) ──
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+    const prompt = `You are an expert mechanical engineer specialized in reading 2D technical drawings.
+Analyze the attached PDF drawing carefully and extract EVERY dimension annotation visible.
+
+For each dimension return a JSON object with these fields:
+- "label": Descriptive name in Korean if possible (e.g. "전체 길이", "구멍 직경", "폭", "높이"). Use the drawing's own labels if present.
+- "value": The nominal numerical value as a number.
+- "unit": Unit of measurement (e.g. "mm", "inch", "°"). Default "mm" if not stated.
+- "tolerance": Tolerance string as written (e.g. "±0.05", "+0.1/-0.0", "H7"). Empty string "" if none shown.
+- "max": Maximum value calculated from tolerance. If no tolerance, same as value (number).
+- "min": Minimum value calculated from tolerance. If no tolerance, same as value (number).
+- "note": Any related surface finish, fit, or annotation note. Empty string "" if none.
+
+IMPORTANT: Return ONLY a valid JSON array. No markdown fences, no explanation, no extra text. Start directly with [ and end with ].`;
+
+    const body = {
+      contents: [{
+        parts: [
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: "application/pdf",
+              data: base64
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1
+      }
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData?.error?.message || `HTTP ${res.status}`;
+      if (res.status === 400) throw new Error(`요청 오류: ${msg}`);
+      if (res.status === 403 || res.status === 401) throw new Error('API 키가 유효하지 않습니다. 설정에서 키를 확인해 주세요.');
+      if (res.status === 429) throw new Error('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.');
+      throw new Error(`오류 발생: ${msg}`);
+    }
+
+    const data = await res.json();
+
+    // Extract text from response
+    const rawText = data?.candidates?.[0]?.content?.parts
+      ?.filter(p => p.text)
+      ?.map(p => p.text)
+      ?.join('') || '';
+
+    if (!rawText) throw new Error('AI 응답이 비어 있습니다. 도면 내용을 확인해 주세요.');
+
+    // Clean and parse JSON
+    const clean = rawText
+      .replace(/```(?:json)?/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch {
+      // Try extracting array from text
+      const match = clean.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해 주세요.');
+      parsed = JSON.parse(match[0]);
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('도면에서 치수를 찾을 수 없습니다. PDF 파일을 확인해 주세요.');
+    }
+
+    dimensions = parsed;
+    renderTable();
+    showToast(`✓ ${dimensions.length}개 치수 추출 완료`, 'success');
+
+  } catch (err) {
+    console.error(err);
+    showError(err.message || '알 수 없는 오류가 발생했습니다.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ─── Table Render ─────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('dim-tbody');
+  tbody.innerHTML = '';
+
+  dimensions.forEach((dim, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'dim-row border-b border-slate-50 fade-in';
+    tr.innerHTML = `
+      <td class="px-4 py-2 text-slate-300 font-mono text-[10px] select-none">${i+1}</td>
+      <td class="px-4 py-2">${editCell(i, 'label', dim.label, 'font-medium text-slate-800')}</td>
+      <td class="px-4 py-2">${editCell(i, 'value', dim.value, 'font-mono')}</td>
+      <td class="px-4 py-2">${editCell(i, 'unit', dim.unit, 'font-mono text-slate-500')}</td>
+      <td class="px-4 py-2">${editCell(i, 'tolerance', dim.tolerance, 'font-mono text-slate-500')}</td>
+      <td class="px-4 py-2">${editCell(i, 'max', dim.max, 'font-mono text-green-700')}</td>
+      <td class="px-4 py-2">${editCell(i, 'min', dim.min, 'font-mono text-blue-700')}</td>
+      <td class="px-4 py-2">${editCell(i, 'note', dim.note || '', 'text-slate-400')}</td>
+      <td class="px-2 py-2">
+        <button onclick="removeRow(${i})"
+          class="del-btn text-slate-200 hover:text-red-500 transition-colors opacity-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Show table
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('dim-table').classList.remove('hidden');
+  document.getElementById('dim-table').classList.add('table');
+
+  const count = document.getElementById('row-count');
+  count.textContent = dimensions.length + '개';
+  count.classList.remove('hidden');
+
+  document.getElementById('add-row-btn').classList.remove('hidden');
+  document.getElementById('add-row-btn').classList.add('flex');
+  document.getElementById('table-footer').classList.remove('hidden');
+
+  const excelBtn = document.getElementById('excel-btn');
+  excelBtn.classList.remove('hidden');
+  excelBtn.classList.add('flex');
+  const mobileBtn = document.getElementById('excel-btn-mobile');
+  mobileBtn.classList.remove('hidden');
+  mobileBtn.classList.add('flex');
+}
+
+function editCell(i, field, val, cls = '') {
+  return `<input type="text" value="${escHtml(String(val ?? ''))}"
+    oninput="updateCell(${i},'${field}',this.value)"
+    class="editable-cell ${cls}" />`;
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateCell(i, field, value) {
+  dimensions[i][field] = value;
+}
+
+function removeRow(i) {
+  dimensions.splice(i, 1);
+  if (dimensions.length === 0) { resetTable(); return; }
+  renderTable();
+}
+
+function addRow() {
+  dimensions.push({ label: '새 항목', value: 0, unit: 'mm', tolerance: '', max: 0, min: 0, note: '' });
+  renderTable();
+  // Scroll to bottom
+  const table = document.getElementById('dim-table');
+  table.parentElement.scrollTop = table.parentElement.scrollHeight;
+}
+
+function resetTable() {
+  dimensions = [];
+  document.getElementById('dim-tbody').innerHTML = '';
+  document.getElementById('dim-table').classList.add('hidden');
+  document.getElementById('empty-state').classList.remove('hidden');
+  document.getElementById('table-footer').classList.add('hidden');
+  document.getElementById('row-count').classList.add('hidden');
+  document.getElementById('add-row-btn').classList.add('hidden');
+  document.getElementById('add-row-btn').classList.remove('flex');
+  document.getElementById('excel-btn').classList.add('hidden');
+  document.getElementById('excel-btn').classList.remove('flex');
+  document.getElementById('excel-btn-mobile').classList.add('hidden');
+  document.getElementById('excel-btn-mobile').classList.remove('flex');
+}
+
+// ─── Loading State ────────────────────────────────────
+function setLoading(on) {
+  const extractBtn    = document.getElementById('extract-btn');
+  const extractText   = document.getElementById('extract-btn-text');
+  const progressWrap  = document.getElementById('progress-wrap');
+  const progressFill  = document.getElementById('progress-fill');
+  const loadingState  = document.getElementById('loading-state');
+  const emptyState    = document.getElementById('empty-state');
+
+  if (on) {
+    extractBtn.disabled = true;
+    extractText.textContent = '분석 중...';
+    progressWrap.classList.remove('hidden');
+    // Reset animation
+    progressFill.classList.remove('progress-bar');
+    void progressFill.offsetWidth;
+    progressFill.classList.add('progress-bar');
+
+    if (dimensions.length === 0) {
+      emptyState.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      loadingState.classList.add('flex');
+    }
+  } else {
+    extractBtn.disabled = false;
+    extractText.textContent = '치수 추출 시작';
+    progressWrap.classList.add('hidden');
+    loadingState.classList.add('hidden');
+    loadingState.classList.remove('flex');
+    if (dimensions.length === 0) emptyState.classList.remove('hidden');
+  }
+}
+
+// ─── Excel Export ─────────────────────────────────────
+function exportExcel() {
+  if (dimensions.length === 0) { showToast('추출된 데이터가 없습니다.', 'error'); return; }
+
+  const rows = dimensions.map((d, i) => ({
+    'No': i + 1,
+    '항목명 (Label)': d.label ?? '',
+    '기준값 (Value)': d.value ?? '',
+    '단위 (Unit)': d.unit ?? 'mm',
+    '공차 (Tolerance)': d.tolerance ?? '',
+    'Max': d.max ?? '',
+    'Min': d.min ?? '',
+    '비고 (Note)': d.note ?? ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 5 }, { wch: 24 }, { wch: 14 }, { wch: 10 },
+    { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 32 }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '치수 목록');
+
+  const fileName = `치수_${(currentFile?.name || 'drawing').replace('.pdf', '')}_${today()}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast(`✓ ${fileName} 저장 완료`, 'success');
+}
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ─── UI Helpers ───────────────────────────────────────
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  document.getElementById('error-text').textContent = msg;
+  box.classList.remove('hidden');
+  box.classList.add('flex');
+}
+function hideError() {
+  const box = document.getElementById('error-box');
+  box.classList.add('hidden');
+  box.classList.remove('flex');
+}
+
+let toastTimer;
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  const colors = { success: '#16a34a', error: '#dc2626', info: '#1e293b' };
+  el.style.background = colors[type] || colors.info;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+
+</body>
 </html>
