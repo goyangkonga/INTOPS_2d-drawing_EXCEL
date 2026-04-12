@@ -1,54 +1,45 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>INTOPS · 2D Drawing to Excel</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<!-- PDF.js: PDF를 이미지로 렌더링 (근거이미지 생성) -->
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
-:root{--o:#F47B20;--o2:#E8680D;--o3:#FFF3E8;--dk:#1A1A2E;}
-*,*::before,*::after{box-sizing:border-box;}
-body{font-family:'Noto Sans KR','Segoe UI',sans-serif;background:#F5F5F7;color:#1a1a1a;min-height:100vh;}
-::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-thumb{background:var(--o);border-radius:4px;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.spin{animation:spin 1s linear infinite;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.fade-up{animation:fadeUp .2s ease both;}
-@keyframes prog{0%{width:3%}50%{width:75%}100%{width:94%}}
-.prog-anim{animation:prog 30s ease forwards;}
-.ecell{background:transparent;border:none;outline:none;width:100%;font-size:.72rem;padding:0;min-width:48px;font-family:inherit;}
-.ecell:focus{background:#FFF3E8;border-radius:4px;padding:1px 5px;outline:1px solid var(--o);}
-.dim-row:hover{background:#FFF8F2;}
-.dim-row:hover .del-btn{opacity:1!important;}
-#toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:.78rem;font-weight:700;color:#fff;background:var(--dk);box-shadow:0 8px 28px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .28s,transform .28s;transform:translateY(10px);z-index:9999;}
-#toast.show{opacity:1;transform:none;}
-#modal-bd{display:none;position:fixed;inset:0;background:rgba(26,26,46,.55);backdrop-filter:blur(5px);z-index:50;align-items:center;justify-content:center;}
-#modal-bd.open{display:flex;}
-.drag-over{border-color:var(--o)!important;background:var(--o3)!important;}
-.btn-o{background:var(--o);color:#fff;font-weight:700;border-radius:8px;transition:background .18s,transform .1s;cursor:pointer;}
-.btn-o:hover{background:var(--o2);}
-.btn-o:active{transform:scale(.98);}
-.btn-o:disabled{opacity:.55;pointer-events:none;}
-.btn-out{border:2px solid var(--o);color:var(--o);font-weight:700;border-radius:8px;background:#fff;transition:background .18s,color .18s;cursor:pointer;}
-.btn-out:hover{background:var(--o);color:#fff;}
-.card{background:#fff;border-radius:14px;border:1px solid #eee;box-shadow:0 2px 12px rgba(0,0,0,.06);}
-.how-card{background:linear-gradient(135deg,#1A1A2E,#2d2d4e);border-radius:14px;}
-.step-badge{width:22px;height:22px;border-radius:50%;background:var(--o);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.hacc{height:3px;background:linear-gradient(90deg,var(--o),#ffb347);}
-.mtab{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
-.mtab.on{background:var(--o);color:#fff;}
-.mtab:not(.on){background:#f0f0f0;color:#888;}
-.mtab:not(.on):hover{background:#e0e0e0;}
-/* 이미지 미리보기 팝업 */
-#img-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
-#img-popup.open{display:flex;}
-#img-popup img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>INTOPS · 2D Drawing to Excel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+    :root{--og:#F47B20;--og2:#E8680D;--og3:#FFF3E8;--dk:#1A1A2E;--rd:#DC1E1E;}
+    *{box-sizing:border-box;}
+    body{font-family:'Noto Sans KR','Segoe UI',sans-serif;background:#F5F5F7;color:#1a1a1a;min-height:100vh;}
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-thumb{background:var(--og);border-radius:4px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .spin{animation:spin 1s linear infinite;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    .fade-up{animation:fadeUp .2s ease both;}
+    .ecell{background:transparent;border:none;outline:none;width:100%;font-size:.72rem;padding:0;min-width:44px;font-family:inherit;}
+    .ecell:focus{background:#FFF3E8;border-radius:3px;padding:1px 4px;outline:1px solid var(--og);}
+    .dim-row:hover{background:#FFF8F2;}
+    .dim-row:hover .del-btn{opacity:1!important;}
+    #toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:.78rem;font-weight:700;color:#fff;background:var(--dk);box-shadow:0 8px 28px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .28s,transform .28s;transform:translateY(10px);z-index:9999;}
+    #toast.show{opacity:1;transform:none;}
+    #modal-backdrop{display:none;position:fixed;inset:0;background:rgba(26,26,46,.55);backdrop-filter:blur(5px);z-index:50;align-items:center;justify-content:center;}
+    #modal-backdrop.open{display:flex;}
+    .drag-over{border-color:var(--og)!important;background:var(--og3)!important;}
+    .btn-og{background:var(--og);color:#fff;font-weight:700;border-radius:8px;transition:background .18s;}
+    .btn-og:hover{background:var(--og2);}
+    .btn-og:disabled{opacity:.5;pointer-events:none;}
+    .btn-out{border:2px solid var(--og);color:var(--og);font-weight:700;border-radius:8px;background:#fff;transition:background .18s,color .18s;}
+    .btn-out:hover{background:var(--og);color:#fff;}
+    .card{background:#fff;border-radius:14px;border:1px solid #eee;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+    .how-card{background:linear-gradient(135deg,#1A1A2E,#2d2d4e);border-radius:14px;}
+    .step-badge{width:22px;height:22px;border-radius:50%;background:var(--og);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .header-accent{height:3px;background:linear-gradient(90deg,var(--og),#ffb347);}
+    #img-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;cursor:zoom-out;}
+    #img-popup.open{display:flex;}
+    #img-popup img{max-width:90vw;max-height:88vh;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+  </style>
 </head>
 <body>
 
@@ -56,718 +47,578 @@ body{font-family:'Noto Sans KR','Segoe UI',sans-serif;background:#F5F5F7;color:#
 <header class="bg-white sticky top-0 z-40" style="box-shadow:0 1px 0 #eee,0 4px 20px rgba(0,0,0,.06);">
   <div class="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <svg width="88" height="22" viewBox="0 0 88 22"><text x="0" y="17" font-family="'Noto Sans KR',sans-serif" font-weight="800" font-size="17" fill="#F47B20" letter-spacing="1">INTOPS</text></svg>
-      <span style="width:1px;height:18px;background:#e0e0e0;display:inline-block;margin:0 4px;"></span>
+      <svg width="96" height="22" viewBox="0 0 96 22"><text x="0" y="17" font-family="'Noto Sans KR',sans-serif" font-weight="800" font-size="17" fill="#F47B20" letter-spacing="1">INTOPS</text></svg>
+      <span style="width:1px;height:18px;background:#e0e0e0;display:inline-block;margin:0 6px;"></span>
       <span class="text-sm font-semibold text-slate-700 whitespace-nowrap">2D Drawing to Excel</span>
     </div>
     <div class="flex items-center gap-2">
       <button id="excel-btn" onclick="exportExcel()" class="btn-out hidden items-center gap-1.5 px-3 py-1.5 text-xs">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Excel 다운로드
+        검증용 Excel 다운로드
       </button>
-      <button id="api-btn" onclick="openSettings()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors" title="API 키 설정">
+      <button id="api-key-btn" onclick="openSettings()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors" title="API 키 설정">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
         API 키 설정
       </button>
     </div>
   </div>
-  <div class="hacc"></div>
+  <div class="header-accent"></div>
 </header>
 
 <!-- API WARNING -->
-<div id="api-warn" style="background:#FFF3E8;border-bottom:1px solid #fdd5af;">
+<div id="api-warning" style="background:#FFF3E8;border-bottom:1px solid #fdd5af;">
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-2.5 flex items-center gap-2 text-xs font-semibold" style="color:#c85a00;">
     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
     Gemini API 키가 설정되지 않았습니다.
-    <button onclick="openSettings()" class="underline font-bold ml-1">지금 설정하기 →</button>
+    <button onclick="openSettings()" class="underline font-bold ml-1">지금 설정하기 &rarr;</button>
   </div>
 </div>
 
 <!-- HERO -->
-<div style="background:linear-gradient(135deg,#F47B20 0%,#ff9a47 60%,#ffb347 100%);" class="text-white">
+<div style="background:linear-gradient(135deg,#F47B20,#ff9a47 60%,#ffb347);" class="text-white">
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div>
-      <div class="flex items-center gap-2 mb-2">
-        <span class="bg-white/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">AI 자동화 툴</span>
-        <span class="bg-white/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">검증용 Excel 생성</span>
-      </div>
-      <h1 class="text-xl md:text-2xl font-extrabold leading-tight">2D PDF 도면 → 검증용 Excel 자동 변환</h1>
-      <p class="text-sm text-orange-100 mt-1.5 font-medium">치수·공차 분리 + PDF 근거 이미지(빨간 박스) 포함 · AI 추출 결과 즉시 검토 가능</p>
+      <div class="flex items-center gap-2 mb-2"><span class="bg-white/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">AI 자동화 툴</span></div>
+      <h1 class="text-xl md:text-2xl font-extrabold leading-tight">2D PDF 도면 &rarr; 검증용 Excel 자동 변환</h1>
+      <p class="text-sm text-orange-100 mt-1.5 font-medium">치수&middot;공차 자동 추출 + 위치 근거 이미지(빨간 박스) 포함 Excel 생성</p>
     </div>
-    <div class="flex items-center gap-3 shrink-0 flex-wrap">
-      <div class="bg-white/15 rounded-xl px-4 py-3 text-center min-w-[68px]"><div class="text-xl font-black">PDF</div><div class="text-[10px] text-orange-100 mt-0.5">도면 업로드</div></div>
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="bg-white/15 rounded-xl px-4 py-3 text-center"><div class="text-xl font-black">PDF</div><div class="text-[10px] text-orange-100 mt-0.5">도면 업로드</div></div>
       <svg class="w-5 h-5 text-orange-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-      <div class="bg-white/15 rounded-xl px-4 py-3 text-center min-w-[68px]"><div class="text-xl font-black">AI</div><div class="text-[10px] text-orange-100 mt-0.5">치수+위치 분석</div></div>
+      <div class="bg-white/15 rounded-xl px-4 py-3 text-center"><div class="text-xl font-black">AI</div><div class="text-[10px] text-orange-100 mt-0.5">치수+좌표 분석</div></div>
       <svg class="w-5 h-5 text-orange-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-      <div class="bg-white/15 rounded-xl px-4 py-3 text-center min-w-[68px]"><div class="text-xl font-black">.xlsx</div><div class="text-[10px] text-orange-100 mt-0.5">검증 Excel</div></div>
+      <div class="bg-white/15 rounded-xl px-4 py-3 text-center"><div class="text-xl font-black">.xlsx</div><div class="text-[10px] text-orange-100 mt-0.5">검증용 Excel</div></div>
     </div>
   </div>
 </div>
 
 <!-- MAIN -->
 <main class="max-w-7xl mx-auto px-4 md:px-6 py-7">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-  <!-- LEFT -->
-  <div class="lg:col-span-4 space-y-5">
-    <div class="card p-5 space-y-4">
-      <h2 class="text-sm font-bold flex items-center gap-2" style="color:#F47B20;">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-        PDF 도면 업로드
-      </h2>
-      <div id="drop-zone" onclick="document.getElementById('fi').click()"
-        ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
-        class="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all min-h-[150px]"
-        style="border-color:#fdd5af;background:#FFFAF6;">
-        <input type="file" id="fi" accept=".pdf" class="hidden" onchange="onFileSel(event)"/>
-        <div id="dz-icon" class="p-3 rounded-full" style="background:#FFF3E8;color:#F47B20;">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <!-- LEFT -->
+    <div class="lg:col-span-4 space-y-5">
+      <div class="card p-5 space-y-4">
+        <h2 class="text-sm font-bold flex items-center gap-2" style="color:var(--og);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          PDF 도면 업로드
+        </h2>
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
+          class="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all min-h-[160px]"
+          style="border-color:#fdd5af;background:#FFFAF6;">
+          <input type="file" id="file-input" accept=".pdf" class="hidden" onchange="onFileSelect(event)"/>
+          <div id="drop-icon" class="p-3 rounded-full" style="background:#FFF3E8;color:var(--og);">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div id="drop-text" class="text-center">
+            <p class="text-sm font-bold text-slate-700">클릭 또는 드래그 앤 드롭</p>
+            <p class="text-xs text-slate-400 mt-1">PDF 파일만 지원합니다</p>
+          </div>
         </div>
-        <div id="dz-text" class="text-center">
-          <p class="text-sm font-bold text-slate-700">클릭 또는 드래그 앤 드롭</p>
-          <p class="text-xs text-slate-400 mt-1">PDF 파일만 지원합니다</p>
+
+        <div id="error-box" class="hidden p-3 rounded-lg flex gap-2" style="background:#FFF0F0;border:1px solid #ffd0d0;color:#c0392b;">
+          <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p id="error-text" class="text-xs leading-relaxed"></p>
         </div>
-      </div>
 
-      <!-- 모드 선택 -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Excel 출력 방식</p>
-        <div class="flex gap-2">
-          <button class="mtab on" id="tab-v" onclick="setMode('verify')">📋 검증용 (공차+이미지)</button>
-          <button class="mtab" id="tab-s" onclick="setMode('simple')">📄 단순 목록</button>
+        <div id="progress-wrap" class="hidden space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span id="progress-label" class="text-[11px] font-bold" style="color:var(--og);">준비 중...</span>
+            <span class="text-[10px] text-slate-400">잠시만 기다려주세요</span>
+          </div>
+          <div class="h-1.5 rounded-full overflow-hidden" style="background:#FFE8D0;">
+            <div id="progress-fill" class="h-full rounded-full" style="background:linear-gradient(90deg,#F47B20,#ffb347);width:4%;transition:width .4s;"></div>
+          </div>
         </div>
-        <p id="mode-desc" class="text-[10px] text-slate-400 leading-relaxed">공차 상한/하한 분리 + PDF 근거 이미지(빨간 박스) 포함</p>
-      </div>
 
-      <!-- Error -->
-      <div id="err-box" class="hidden p-3 rounded-lg flex gap-2" style="background:#FFF0F0;border:1px solid #ffd0d0;color:#c0392b;">
-        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <p id="err-txt" class="text-xs leading-relaxed"></p>
-      </div>
-
-      <!-- Progress -->
-      <div id="prog-wrap" class="hidden space-y-1.5">
-        <div class="flex justify-between">
-          <span class="text-[11px] font-bold" style="color:#F47B20;" id="prog-label">AI 분석 중...</span>
-          <span class="text-[10px] text-slate-400" id="prog-sub">잠시만요</span>
-        </div>
-        <div class="h-1.5 rounded-full overflow-hidden" style="background:#FFE8D0;">
-          <div id="prog-fill" class="prog-anim h-full rounded-full" style="background:linear-gradient(90deg,#F47B20,#ffb347);width:3%;"></div>
-        </div>
-      </div>
-
-      <button id="ext-btn" onclick="processDrawing()" class="btn-o hidden w-full py-2.5 px-4 text-sm flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-        <span id="ext-txt">치수 추출 시작</span>
-      </button>
-    </div>
-
-    <!-- How -->
-    <div class="how-card p-5 text-slate-300">
-      <div class="flex items-center gap-2 mb-4">
-        <span class="text-white text-sm font-extrabold">사용 방법</span>
-        <span style="background:#FFF3E8;color:#F47B20;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid #fdd5af;">5 STEPS</span>
-      </div>
-      <ol class="space-y-3 text-xs">
-        <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">1</div><p>「API 키 설정」에서 Gemini API 키 입력</p></li>
-        <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">2</div><p>2D PDF 도면 파일 업로드</p></li>
-        <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">3</div><p>Excel 출력 방식 선택<br><span class="text-slate-500">검증용: 공차분리 + 근거이미지 포함</span></p></li>
-        <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">4</div><p>「치수 추출 시작」→ AI 자동 분석</p></li>
-        <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">5</div><p>결과 확인 후 「Excel 다운로드」</p></li>
-      </ol>
-      <div class="mt-4 pt-4 text-[10px] text-slate-600" style="border-top:1px solid #2d2d4e;">
-        🔒 API 키 localStorage만 저장 · 서버 전송 없음<br>
-        📋 검증용: 공차 상한/하한 + 위치 근거이미지(빨간박스)
-      </div>
-    </div>
-
-    <button id="excel-btn-m" onclick="exportExcel()" class="btn-o hidden w-full lg:hidden py-2.5 px-4 text-sm flex items-center justify-center gap-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-      Excel 다운로드
-    </button>
-  </div>
-
-  <!-- RIGHT -->
-  <div class="lg:col-span-8">
-    <div class="card overflow-hidden flex flex-col min-h-[520px]">
-      <div class="px-5 py-3 border-b flex items-center justify-between" style="background:#FFFAF6;border-color:#feecd8;">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4" style="color:#F47B20;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/></svg>
-          <span class="text-sm font-extrabold text-slate-800">치수 목록</span>
-          <span id="row-cnt" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:#FFF3E8;color:#F47B20;border:1px solid #fdd5af;"></span>
-          <span id="mode-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:#1A1A2E;color:#fff;"></span>
-        </div>
-        <button id="add-btn" onclick="addRow()" class="hidden items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg" style="color:#F47B20;" onmouseover="this.style.background='#FFF3E8'" onmouseout="this.style.background=''">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>행 추가
+        <button id="extract-btn" onclick="processDrawing()"
+          class="btn-og hidden w-full py-2.5 px-4 text-sm flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <span id="extract-btn-text">치수 추출 시작</span>
         </button>
       </div>
 
-      <div class="flex-1 overflow-auto">
-        <!-- Empty -->
-        <div id="empty-st" class="h-full flex flex-col items-center justify-center text-slate-400 p-12 text-center min-h-[400px]">
-          <div class="p-5 rounded-full mb-4" style="background:#FFF3E8;">
-            <svg class="w-10 h-10" style="color:#fdd5af;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/></svg>
-          </div>
-          <p class="text-sm font-bold text-slate-600">아직 분석 결과가 없습니다</p>
-          <p class="text-xs mt-1.5 max-w-[240px] leading-relaxed">PDF 도면을 업로드하고<br><strong style="color:#F47B20;">「치수 추출 시작」</strong>을 클릭하세요.</p>
+      <div class="how-card p-5 text-slate-300">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-white text-sm font-extrabold">사용 방법</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:#FFF3E8;color:var(--og);border:1px solid #fdd5af;">5 STEPS</span>
         </div>
-        <!-- Loading -->
-        <div id="load-st" class="hidden h-full flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
-          <div class="relative mb-4">
-            <svg class="w-14 h-14 spin" style="color:#fdd5af;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <svg class="w-6 h-6 absolute inset-0 m-auto" style="color:#F47B20;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          </div>
-          <p class="text-sm font-bold text-slate-700">Gemini AI가 도면을 분석하고 있습니다...</p>
-          <p class="text-xs text-slate-400 mt-1">치수·공차·위치 좌표까지 추출 중 (15~40초)</p>
-        </div>
-        <!-- Table verify -->
-        <table id="tbl-v" class="hidden w-full text-left border-collapse" style="font-size:.72rem;">
-          <thead><tr style="background:#FFFAF6;border-bottom:2px solid #feecd8;position:sticky;top:0;z-index:10;">
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-400 text-[10px]">#</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">치수명</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">Spec</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">단위</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-[10px]" style="color:#16a34a;">상한공차</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-[10px]" style="color:#dc2626;">하한공차</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">비고</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">근거</th>
-            <th class="w-8"></th>
-          </tr></thead>
-          <tbody id="tbody-v"></tbody>
-        </table>
-        <!-- Table simple -->
-        <table id="tbl-s" class="hidden w-full text-left border-collapse" style="font-size:.72rem;">
-          <thead><tr style="background:#FFFAF6;border-bottom:2px solid #feecd8;position:sticky;top:0;z-index:10;">
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-400 text-[10px]">#</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">치수명</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">기준값</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">단위</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">공차</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-[10px]" style="color:#16a34a;">Max</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-[10px]" style="color:#2563eb;">Min</th>
-            <th class="px-3 py-2.5 font-extrabold uppercase text-slate-500 text-[10px]">비고</th>
-            <th class="w-8"></th>
-          </tr></thead>
-          <tbody id="tbody-s"></tbody>
-        </table>
+        <ol class="space-y-3 text-xs">
+          <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">1</div><p>「API 키 설정」에서 <strong class="text-white">Gemini API 키</strong> 입력</p></li>
+          <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">2</div><p><strong class="text-white">2D PDF 도면</strong> 업로드 (드래그 또는 클릭)</p></li>
+          <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">3</div><p><strong class="text-white">「치수 추출 시작」</strong> 클릭<br><span class="text-slate-500">&rarr; 치수값 + 도면 내 위치좌표 동시 분석</span></p></li>
+          <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">4</div><p>결과 직접 수정 가능<br><span class="text-slate-500">썸네일 클릭 &rarr; 원본 확대 확인</span></p></li>
+          <li class="flex gap-2.5 items-start"><div class="step-badge mt-0.5">5</div><p><strong class="text-white">「검증용 Excel 다운로드」</strong><br><span class="text-slate-500">공차분리 + 근거이미지 포함</span></p></li>
+        </ol>
+        <div class="mt-4 pt-4 text-[10px] text-slate-600" style="border-top:1px solid #2d2d4e;">&#128274; API 키는 브라우저 localStorage에만 저장</div>
       </div>
 
-      <div id="tbl-footer" class="hidden px-5 py-3 border-t flex items-center justify-between" style="background:#FFFAF6;border-color:#feecd8;">
-        <p class="text-[10px] text-slate-400">셀 클릭 직접 수정 · 근거 썸네일 클릭 시 확대보기</p>
-        <div class="flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" style="color:#16a34a;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span class="text-[10px] font-bold text-slate-500">분석 완료</span>
+      <button id="excel-btn-mobile" onclick="exportExcel()" class="btn-og hidden w-full lg:hidden py-2.5 px-4 text-sm flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        검증용 Excel 다운로드
+      </button>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="lg:col-span-8">
+      <div class="card overflow-hidden flex flex-col min-h-[520px]">
+        <div class="px-5 py-3 border-b flex items-center justify-between" style="background:#FFFAF6;border-color:#feecd8;">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" style="color:var(--og);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/></svg>
+            <span class="text-sm font-extrabold">치수 목록</span>
+            <span id="row-count" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:#FFF3E8;color:var(--og);border:1px solid #fdd5af;"></span>
+          </div>
+          <button id="add-row-btn" onclick="addRow()" class="hidden items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg" style="color:var(--og);" onmouseover="this.style.background='#FFF3E8'" onmouseout="this.style.background=''">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            행 추가
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-auto">
+          <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 p-12 text-center min-h-[420px]">
+            <div class="p-5 rounded-full mb-4" style="background:#FFF3E8;"><svg class="w-10 h-10" style="color:#fdd5af;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"/></svg></div>
+            <p class="text-sm font-bold text-slate-600">아직 분석 결과가 없습니다</p>
+            <p class="text-xs mt-1.5 max-w-[240px] leading-relaxed">PDF 도면을 업로드하고<br><strong style="color:var(--og);">「치수 추출 시작」</strong>을 클릭하세요.</p>
+          </div>
+
+          <div id="loading-state" class="hidden h-full flex flex-col items-center justify-center p-12 text-center min-h-[420px]">
+            <div class="relative mb-4">
+              <svg class="w-14 h-14 spin" style="color:#fdd5af;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <svg class="w-6 h-6 absolute inset-0 m-auto" style="color:var(--og);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <p id="loading-msg" class="text-sm font-bold text-slate-700">Gemini AI가 도면을 분석 중...</p>
+            <p class="text-xs text-slate-400 mt-1">치수값 + 위치 좌표를 동시에 추출합니다</p>
+          </div>
+
+          <table id="dim-table" class="hidden w-full text-left border-collapse" style="font-size:.72rem;">
+            <thead>
+              <tr style="background:#FFFAF6;border-bottom:2px solid #feecd8;position:sticky;top:0;z-index:10;">
+                <th class="px-3 py-2.5 text-[10px] font-extrabold text-slate-400 uppercase">#</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold uppercase" style="color:var(--rd);">근거</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold text-slate-500 uppercase whitespace-nowrap">치수명</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold text-slate-500 uppercase">Spec</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold text-slate-500 uppercase">단위</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold uppercase whitespace-nowrap" style="color:#16a34a;">상한공차</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold uppercase whitespace-nowrap" style="color:#dc2626;">하한공차</th>
+                <th class="px-3 py-2.5 text-[10px] font-extrabold text-slate-500 uppercase">비고</th>
+                <th class="w-7"></th>
+              </tr>
+            </thead>
+            <tbody id="dim-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="table-footer" class="hidden px-5 py-3 border-t flex items-center justify-between" style="background:#FFFAF6;border-color:#feecd8;">
+          <p class="text-[10px] text-slate-400">썸네일 클릭 &rarr; 원본 확대 &middot; 셀 클릭 &rarr; 직접 수정</p>
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" style="color:#16a34a;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-[10px] font-bold text-slate-500">분석 완료</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 </main>
 
 <!-- FOOTER -->
 <footer class="max-w-7xl mx-auto px-4 md:px-6 py-6 mt-2" style="border-top:1px solid #eee;">
   <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
     <div class="flex items-center gap-2">
-      <span style="color:#F47B20;font-weight:800;font-size:13px;">INTOPS</span>
-      <span>© 2026 · 2D Drawing to Excel · Powered by Gemini AI</span>
+      <span style="color:var(--og);font-weight:800;font-size:13px;">INTOPS</span>
+      <span>&copy; 2026 &middot; 2D Drawing to Excel &middot; Powered by Gemini AI</span>
     </div>
     <div class="flex items-center gap-4">
-      <a href="https://aistudio.google.com/app/apikey" target="_blank" class="hover:text-slate-700">API 키 발급 (무료)</a>
-      <a href="https://ai.google.dev/gemini-api/docs" target="_blank" class="hover:text-slate-700">Gemini 문서</a>
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="hover:text-slate-700">API 키 발급 (무료)</a>
+      <a href="https://ai.google.dev/gemini-api/docs" target="_blank" rel="noopener noreferrer" class="hover:text-slate-700">Gemini 문서</a>
     </div>
   </div>
 </footer>
 
 <!-- SETTINGS MODAL -->
-<div id="modal-bd" onclick="handleBdClick(event)">
+<div id="modal-backdrop" onclick="handleBackdropClick(event)">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
     <div class="px-6 py-4 border-b flex items-center justify-between" style="background:#FFFAF6;border-color:#feecd8;">
       <div class="flex items-center gap-2">
-        <div class="p-1.5 rounded-lg" style="background:#FFF3E8;">
-          <svg class="w-4 h-4" style="color:#F47B20;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-        </div>
+        <div class="p-1.5 rounded-lg" style="background:#FFF3E8;"><svg class="w-4 h-4" style="color:var(--og);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg></div>
         <h3 class="font-extrabold text-sm">Gemini API 키 설정</h3>
       </div>
-      <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-900 p-1 rounded-md hover:bg-slate-100">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+      <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-900 p-1 rounded-md hover:bg-slate-100"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
     </div>
     <div class="p-6 space-y-5">
       <div class="space-y-2">
         <label class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">API Key</label>
         <div class="relative">
-          <input type="password" id="api-inp" placeholder="AIzaSy..."
-            class="w-full pr-16 px-4 py-2.5 text-sm font-mono rounded-lg border outline-none"
-            style="background:#FAFAFA;border-color:#e0e0e0;"
-            onfocus="this.style.borderColor='#F47B20';this.style.boxShadow='0 0 0 3px rgba(244,123,32,.12)'"
-            onblur="this.style.borderColor='#e0e0e0';this.style.boxShadow='none'"/>
-          <button onclick="toggleKeyVis()" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold" style="color:#F47B20;">표시</button>
+          <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full pr-16 px-4 py-2.5 text-sm font-mono rounded-lg border outline-none" style="background:#FAFAFA;border-color:#e0e0e0;" onfocus="this.style.borderColor='#F47B20';this.style.boxShadow='0 0 0 3px rgba(244,123,32,.12)'" onblur="this.style.borderColor='#e0e0e0';this.style.boxShadow='none'"/>
+          <button onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold" style="color:var(--og);">표시</button>
         </div>
       </div>
       <div class="flex gap-2.5 p-3 rounded-xl" style="background:#FFF3E8;border:1px solid #fdd5af;">
-        <svg class="w-4 h-4 shrink-0 mt-0.5" style="color:#F47B20;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg class="w-4 h-4 shrink-0 mt-0.5" style="color:var(--og);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <div class="text-[11px] leading-relaxed" style="color:#c85a00;">
           <p>API 키는 <strong>브라우저 localStorage에만 저장</strong>됩니다.</p>
-          <p class="mt-1"><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold">Google AI Studio 무료 발급 →</a></p>
+          <p class="mt-1"><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold">Google AI Studio 무료 발급 &rarr;</a></p>
         </div>
       </div>
-      <button onclick="saveApiKey()" class="btn-o w-full py-2.5 text-sm flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>저장하기
-      </button>
-      <button onclick="clearApiKey()" class="w-full py-2 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">저장된 키 삭제</button>
+      <button onclick="saveApiKey()" class="btn-og w-full py-2.5 text-sm flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>저장하기</button>
+      <button onclick="clearApiKey()" class="w-full py-2 text-xs font-semibold text-slate-400 hover:text-red-500">저장된 키 삭제</button>
     </div>
   </div>
 </div>
 
 <!-- IMAGE POPUP -->
-<div id="img-popup" onclick="this.classList.remove('open')">
-  <img id="popup-img" src="" alt="근거이미지"/>
-</div>
-
-<!-- Hidden canvas for image processing -->
-<canvas id="cvs" style="display:none;"></canvas>
+<div id="img-popup" onclick="closePopup()"><img id="popup-img" src="" alt="근거이미지"/></div>
 <div id="toast"></div>
+<canvas id="pdf-canvas" style="display:none;"></canvas>
 
 <script>
-// PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-// ── STATE ──────────────────────────────────────────────
-let currentFile = null;
-let dimensions  = [];
-let apiKey      = '';
-let excelMode   = 'verify';
-let pdfCanvas   = null;   // PDF 1페이지를 렌더링한 캔버스 (근거이미지용)
-let pdfNatW     = 1;      // PDF 렌더 캔버스 실제 크기
-let pdfNatH     = 1;
+let currentFile=null, dimensions=[], pdfImage=null, apiKey='';
+(function(){apiKey=localStorage.getItem('GEMINI_API_KEY')||'';updateApiKeyUI();})();
 
-(function init(){
-  apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
-  updateApiKeyUI();
-})();
+function updateApiKeyUI(){const w=document.getElementById('api-warning'),b=document.getElementById('api-key-btn');if(apiKey){w.style.display='none';b.style.cssText='color:#16a34a;background:#f0fdf4;border-color:#bbf7d0;';}else{w.style.display='';b.style.cssText='color:#c85a00;background:#FFF3E8;border-color:#fdd5af';}}
+function openSettings(){document.getElementById('api-key-input').value=apiKey;document.getElementById('modal-backdrop').classList.add('open');}
+function closeSettings(){document.getElementById('modal-backdrop').classList.remove('open');}
+function handleBackdropClick(e){if(e.target===document.getElementById('modal-backdrop'))closeSettings();}
+function toggleKeyVisibility(){const i=document.getElementById('api-key-input'),b=i.nextElementSibling;i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'표시':'숨기기';}
+function saveApiKey(){const k=document.getElementById('api-key-input').value.trim();if(!k){showToast('API 키를 입력해주세요.','error');return;}apiKey=k;localStorage.setItem('GEMINI_API_KEY',k);updateApiKeyUI();closeSettings();showToast('API 키 저장 완료 ✓','success');}
+function clearApiKey(){if(!confirm('저장된 API 키를 삭제하시겠습니까?'))return;apiKey='';localStorage.removeItem('GEMINI_API_KEY');document.getElementById('api-key-input').value='';updateApiKeyUI();closeSettings();showToast('API 키 삭제됨','info');}
 
-// ── MODE ───────────────────────────────────────────────
-function setMode(m) {
-  excelMode = m;
-  document.getElementById('tab-v').classList.toggle('on', m==='verify');
-  document.getElementById('tab-s').classList.toggle('on', m==='simple');
-  document.getElementById('mode-desc').textContent = m==='verify'
-    ? '공차 상한/하한 분리 + PDF 근거 이미지(빨간 박스) 포함'
-    : '치수명·기준값·공차·Max/Min·비고만 포함 — 단순 목록';
-  if (dimensions.length) renderTable();
-}
-
-// ── API KEY ────────────────────────────────────────────
-function updateApiKeyUI() {
-  const w=document.getElementById('api-warn'), b=document.getElementById('api-btn');
-  if (apiKey) { w.style.display='none'; b.style.cssText='color:#16a34a;background:#f0fdf4;border-color:#bbf7d0;'; }
-  else        { w.style.display='';    b.style.cssText='color:#c85a00;background:#FFF3E8;border-color:#fdd5af;'; }
-}
-function openSettings()  { document.getElementById('api-inp').value=apiKey; document.getElementById('modal-bd').classList.add('open'); }
-function closeSettings() { document.getElementById('modal-bd').classList.remove('open'); }
-function handleBdClick(e){ if(e.target===document.getElementById('modal-bd')) closeSettings(); }
-function toggleKeyVis()  { const i=document.getElementById('api-inp'); i.type=i.type==='password'?'text':'password'; i.nextElementSibling.textContent=i.type==='password'?'표시':'숨기기'; }
-function saveApiKey()    { const k=document.getElementById('api-inp').value.trim(); if(!k){showToast('API 키를 입력해주세요.','error');return;} apiKey=k; localStorage.setItem('GEMINI_API_KEY',k); updateApiKeyUI(); closeSettings(); showToast('API 키 저장 완료 ✓','success'); }
-function clearApiKey()   { if(!confirm('삭제하시겠습니까?'))return; apiKey=''; localStorage.removeItem('GEMINI_API_KEY'); document.getElementById('api-inp').value=''; updateApiKeyUI(); closeSettings(); showToast('삭제됨','info'); }
-
-// ── FILE HANDLING ──────────────────────────────────────
-function onDragOver(e){ e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-function onDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
-function onDrop(e)     { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f) handleFile(f); }
-function onFileSel(e)  { const f=e.target.files[0]; if(f) handleFile(f); }
-
-function handleFile(file) {
-  if (file.type!=='application/pdf') { showErr('PDF 파일만 업로드할 수 있습니다.'); return; }
-  currentFile=file; pdfCanvas=null; hideErr(); resetTable();
-  const icon=document.getElementById('dz-icon'), text=document.getElementById('dz-text');
+function onDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over');}
+function onDragLeave(){document.getElementById('drop-zone').classList.remove('drag-over');}
+function onDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);}
+function onFileSelect(e){if(e.target.files[0])handleFile(e.target.files[0]);}
+function handleFile(file){
+  if(file.type!=='application/pdf'){showError('PDF 파일만 업로드 가능합니다.');return;}
+  currentFile=file;pdfImage=null;hideError();resetTable();
+  const icon=document.getElementById('drop-icon'),text=document.getElementById('drop-text');
   icon.style.cssText='background:#f0fdf4;color:#16a34a;padding:12px;border-radius:50%;';
-  icon.innerHTML=`<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
-  text.innerHTML=`<p class="text-sm font-bold text-slate-700 break-all max-w-[200px]">${file.name}</p>
-    <p class="text-xs text-slate-400 mt-1">${(file.size/1024).toFixed(1)} KB · <button onclick="clearFile(event)" style="color:#F47B20;" class="hover:underline">변경</button></p>`;
-  const btn=document.getElementById('ext-btn'); btn.classList.remove('hidden'); btn.classList.add('flex');
+  icon.innerHTML='<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+  text.innerHTML='<p class="text-sm font-bold text-slate-700 break-all max-w-[200px]">'+file.name+'</p><p class="text-xs text-slate-400 mt-1">'+(file.size/1024).toFixed(1)+' KB &middot; <button onclick="clearFile(event)" style="color:#F47B20;" class="hover:underline ml-1">변경</button></p>';
+  const b=document.getElementById('extract-btn');b.classList.remove('hidden');b.classList.add('flex');
 }
-
-function clearFile(e) {
-  if(e) e.stopPropagation();
-  currentFile=null; pdfCanvas=null; document.getElementById('fi').value='';
-  const icon=document.getElementById('dz-icon'), text=document.getElementById('dz-text');
+function clearFile(e){
+  if(e)e.stopPropagation();currentFile=null;pdfImage=null;document.getElementById('file-input').value='';
+  const icon=document.getElementById('drop-icon'),text=document.getElementById('drop-text');
   icon.style.cssText='background:#FFF3E8;color:#F47B20;padding:12px;border-radius:50%;';
-  icon.innerHTML=`<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`;
-  text.innerHTML=`<p class="text-sm font-bold text-slate-700">클릭 또는 드래그 앤 드롭</p><p class="text-xs text-slate-400 mt-1">PDF 파일만 지원합니다</p>`;
-  const btn=document.getElementById('ext-btn'); btn.classList.add('hidden'); btn.classList.remove('flex');
-  resetTable();
+  icon.innerHTML='<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
+  text.innerHTML='<p class="text-sm font-bold text-slate-700">클릭 또는 드래그 앤 드롭</p><p class="text-xs text-slate-400 mt-1">PDF 파일만 지원합니다</p>';
+  const b=document.getElementById('extract-btn');b.classList.add('hidden');b.classList.remove('flex');resetTable();
+}
+function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.readAsDataURL(f);r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;});}
+
+async function pdfToImage(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const page=await pdf.getPage(1);
+  const vp=page.getViewport({scale:2.5});
+  const cv=document.getElementById('pdf-canvas');
+  cv.width=vp.width;cv.height=vp.height;
+  await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  return{dataUrl:cv.toDataURL('image/png'),width:vp.width,height:vp.height};
 }
 
-function fileToBase64(file) {
-  return new Promise((res,rej)=>{ const r=new FileReader(); r.readAsDataURL(file); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; });
-}
-
-// ── PDF → CANVAS (PDF.js) ──────────────────────────────
-async function renderPdfToCanvas(file) {
-  const arrayBuf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-  const page = await pdf.getPage(1);
-  const scale = 2.0;  // 고해상도 렌더 (bbox 정확도 향상)
-  const vp = page.getViewport({ scale });
-  const cvs = document.createElement('canvas');
-  cvs.width = vp.width; cvs.height = vp.height;
-  await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
-  pdfNatW = vp.width;
-  pdfNatH = vp.height;
-  return cvs;
-}
-
-// ── HIGHLIGHT IMAGE (Canvas) ───────────────────────────
-// bbox는 Gemini가 반환한 원본 픽셀 기준 좌표
-// pdfRenderScale=2.0이므로 bbox*2 = 렌더 캔버스 좌표
-function makeHighlightDataURL(bbox) {
-  if (!pdfCanvas) return null;
-
-  const TW = 400, TH = 520;
-  const cvs = document.getElementById('cvs');
-  cvs.width = TW; cvs.height = TH;
-  const ctx = cvs.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, TW, TH);
-
-  // PDF 전체를 캔버스에 맞게 축소
-  const scale = Math.min(TW / pdfNatW, TH / pdfNatH);
-  const dw = pdfNatW * scale, dh = pdfNatH * scale;
-  const ox = (TW - dw) / 2, oy = (TH - dh) / 2;
-  ctx.drawImage(pdfCanvas, 0, 0, pdfNatW, pdfNatH, ox, oy, dw, dh);
-
-  // bbox → 렌더 캔버스 좌표 (AI는 scale=2 이미지 기준으로 반환)
-  const bx1 = bbox.x1 * scale + ox;
-  const by1 = bbox.y1 * scale + oy;
-  const bx2 = bbox.x2 * scale + ox;
-  const by2 = bbox.y2 * scale + oy;
-
-  // 빨간 테두리만 (채우기 없음) — 내부 치수 그대로 보임
-  ctx.strokeStyle = 'rgb(210,20,20)';
-  ctx.lineWidth = 2.5;
-  ctx.strokeRect(bx1 - 4, by1 - 4, (bx2-bx1) + 8, (by2-by1) + 8);
-
-  // 모서리 L자 강조선
-  const cL = 8;
-  ctx.lineWidth = 2;
-  [[bx1-4,by1-4,1,1],[bx2+4,by1-4,-1,1],[bx1-4,by2+4,1,-1],[bx2+4,by2+4,-1,-1]].forEach(([cx,cy,sx,sy])=>{
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+sx*cL,cy); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy+sy*cL); ctx.stroke();
-  });
-
-  return cvs.toDataURL('image/png');
-}
-
-// ── GEMINI API ─────────────────────────────────────────
-async function processDrawing() {
-  if (!currentFile) return;
-  if (!apiKey) { showErr('API 키를 먼저 설정해주세요.'); openSettings(); return; }
-
-  setLoading(true); hideErr();
-  setProg('PDF 렌더링 중...', '근거이미지 준비');
-
-  try {
-    // 1) PDF → Canvas 렌더 (PDF.js, scale=2)
-    pdfCanvas = await renderPdfToCanvas(currentFile);
-
-    // 2) base64 (AI 전송용 — PDF 원본)
-    setProg('AI 도면 분석 중...', '치수·공차·위치 인식 중');
-    const base64 = await fileToBase64(currentFile);
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-    // ── 정밀 프롬프트: bbox를 scale=2 렌더 이미지 기준으로 반환 요청 ──
-    const prompt = `You are an expert mechanical engineer reading a 2D technical drawing PDF.
-
-The PDF is rendered at 2× scale for analysis purposes.
-The rendered image is approximately ${pdfNatW} × ${pdfNatH} pixels.
-
-For EVERY dimension annotation in the drawing extract:
-- "label": Korean name (e.g. "전체 길이", "구멍 직경", "폭", "높이", "반경"). Use drawing labels when present.
-- "spec": Nominal numerical value (number, not string).
-- "unit": "mm", "inch", "°" etc. Default "mm".
-- "upper_tol": Upper tolerance string (e.g. "+0.05", "+0.10"). "" if none.
-- "lower_tol": Lower tolerance string (e.g. "-0", "-0.05"). "" if none.
-- "tolerance_str": Full tolerance as written on drawing (e.g. "±0.05", "+0.10/-0"). "" if none.
-- "max": spec + upper_tol value (number). Same as spec if no tolerance.
-- "min": spec - |lower_tol value| (number). Same as spec if no tolerance.
-- "note": Surface finish, fit designation, "THRU ALL", "Typ." etc. "" if none.
-- "bbox": { "x1":N, "y1":N, "x2":N, "y2":N } — TIGHT bounding box of the dimension annotation in the ${pdfNatW}×${pdfNatH} rendered image.
-  Rules for bbox:
-  • Include: the dimension value text + tolerance text + dimension line + extension lines + arrows
-  • Exclude: the part geometry/outline itself
-  • Make it as tight as possible around just the annotation
-  • For vertical dimensions, include the full vertical extent of the dimension line
-  • For horizontal dimensions, include the full horizontal extent
-  • Provide integer pixel coordinates
-
-Return ONLY a valid JSON array. No markdown fences, no explanation. Start with [ end with ].`;
-
-    const body = {
-      contents: [{ parts: [
-        { text: prompt },
-        { inline_data: { mime_type: 'application/pdf', data: base64 } }
-      ]}],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.05 }
+function makeHighlight(imgUrl,normBbox,label){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const OW=480,OH=340,cv=document.createElement('canvas');
+      cv.width=OW;cv.height=OH;
+      const ctx=cv.getContext('2d');
+      const sc=Math.min(OW/img.width,OH/img.height);
+      const dw=img.width*sc,dh=img.height*sc;
+      const ox=(OW-dw)/2,oy=(OH-dh)/2;
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,OW,OH);
+      ctx.drawImage(img,ox,oy,dw,dh);
+      const[nx1,ny1,nx2,ny2]=normBbox;
+      const bx1=nx1*dw+ox,by1=ny1*dh+oy,bx2=nx2*dw+ox,by2=ny2*dh+oy;
+      const p=4,rx=bx1-p,ry=by1-p,rw=(bx2-bx1)+p*2,rh=(by2-by1)+p*2;
+      ctx.strokeStyle='#DC1E1E';ctx.lineWidth=2.5;ctx.strokeRect(rx,ry,rw,rh);
+      ctx.font='bold 10px Arial';
+      const tw=ctx.measureText(label).width+8;
+      const lx=Math.max(ox+1,rx),ly=Math.max(oy+1,ry-16);
+      ctx.fillStyle='#DC1E1E';ctx.fillRect(lx,ly,tw,14);
+      ctx.fillStyle='#fff';ctx.fillText(label,lx+4,ly+10);
+      resolve(cv.toDataURL('image/png'));
     };
-
-    setProg('응답 수신 중...', '잠시만 기다려주세요');
-    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-
-    if (!res.ok) {
-      const e=await res.json().catch(()=>({}));
-      const msg=e?.error?.message||`HTTP ${res.status}`;
-      if (res.status===403||res.status===401) throw new Error('API 키가 유효하지 않습니다.');
-      if (res.status===429) throw new Error('API 한도 초과. 잠시 후 재시도하세요.');
-      throw new Error(`오류: ${msg}`);
-    }
-
-    const data = await res.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.filter(p=>p.text)?.map(p=>p.text)?.join('')||'';
-    if (!raw) throw new Error('AI 응답이 비어있습니다.');
-
-    const clean = raw.replace(/```(?:json)?/gi,'').replace(/```/g,'').trim();
-    let parsed;
-    try { parsed = JSON.parse(clean); }
-    catch {
-      const m=clean.match(/\[[\s\S]*\]/);
-      if(!m) throw new Error('응답 파싱 실패. 다시 시도해주세요.');
-      parsed = JSON.parse(m[0]);
-    }
-    if (!Array.isArray(parsed)||!parsed.length) throw new Error('도면에서 치수를 찾을 수 없습니다.');
-
-    // bbox 없는 항목 보정
-    parsed = parsed.map((d,i) => ({
-      ...d,
-      bbox: d.bbox && d.bbox.x2 > d.bbox.x1 ? d.bbox : { x1:10, y1:10+i*25, x2:120, y2:30+i*25 }
-    }));
-
-    dimensions = parsed;
-    setProg('렌더링 중...', '완료 직전');
-    renderTable();
-    showToast(`✓ ${dimensions.length}개 치수 추출 완료`, 'success');
-
-  } catch(err) {
-    console.error(err);
-    showErr(err.message||'알 수 없는 오류가 발생했습니다.');
-  } finally {
-    setLoading(false);
-  }
+    img.src=imgUrl;
+  });
 }
 
-// ── TABLE RENDER ───────────────────────────────────────
-function renderTable() {
-  const isV = excelMode === 'verify';
-  const tbody = document.getElementById(isV ? 'tbody-v' : 'tbody-s');
-  const tbl   = document.getElementById(isV ? 'tbl-v' : 'tbl-s');
-  const other = document.getElementById(isV ? 'tbl-s' : 'tbl-v');
-  tbody.innerHTML = '';
+function parseTol(tol){
+  if(!tol||!tol.trim())return{upper:'',lower:''};
+  tol=tol.trim();
+  if(tol.startsWith('\u00b1')){const v=tol.slice(1).trim();return{upper:'+'+v,lower:'-'+v};}
+  const m=tol.match(/([+\-]\s*[\d.]+)\s*[\/~,]\s*([+\-]\s*[\d.]+)/);
+  if(m)return{upper:m[1].replace(/\s/g,''),lower:m[2].replace(/\s/g,'')};
+  if(tol.startsWith('+'))return{upper:tol,lower:''};
+  if(tol.startsWith('-'))return{upper:'',lower:tol};
+  return{upper:tol,lower:''};
+}
 
-  dimensions.forEach((d, i) => {
-    const tr = document.createElement('tr');
-    tr.className = 'dim-row fade-up';
-    tr.style.borderBottom = '1px solid #f5f5f5';
+async function processDrawing(){
+  if(!currentFile)return;
+  if(!apiKey){showError('API 키가 설정되지 않았습니다.');openSettings();return;}
+  setLoading(true);hideError();
+  try{
+    setP('PDF 이미지 변환 중...',12);
+    pdfImage=await pdfToImage(currentFile);
+    setP('Gemini AI 분석 중...',35);
+    const b64=await fileToBase64(currentFile);
+    const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+apiKey;
+    const prompt=`You are an expert mechanical engineer. Carefully analyze this 2D engineering drawing PDF.
 
-    // 근거 썸네일
-    const thumbDataURL = (pdfCanvas && d.bbox) ? makeHighlightDataURL(d.bbox) : null;
-    const thumbCell = thumbDataURL
-      ? `<td class="px-2 py-1"><img src="${thumbDataURL}" style="width:72px;height:52px;object-fit:contain;border-radius:4px;cursor:pointer;border:1px solid #eee;" onclick="showPopup('${thumbDataURL}')" title="클릭하여 확대"/></td>`
-      : `<td class="px-2 py-1 text-[10px] text-slate-300">—</td>`;
+Extract ALL dimension annotations. Return a JSON array where each element has:
 
-    if (isV) {
-      tr.innerHTML = `
-        <td class="px-3 py-2.5 text-slate-300 font-mono text-[10px] select-none">${i+1}</td>
-        <td class="px-3 py-2.5">${ec(i,'label',d.label,'font-semibold text-slate-800')}</td>
-        <td class="px-3 py-2.5">${ec(i,'spec',d.spec,'font-mono font-semibold')}</td>
-        <td class="px-3 py-2.5">${ec(i,'unit',d.unit||'mm','font-mono text-slate-400')}</td>
-        <td class="px-3 py-2.5">${ec(i,'upper_tol',d.upper_tol||'—','font-mono font-semibold','color:'+(d.upper_tol?'#16a34a':'#bbb'))}</td>
-        <td class="px-3 py-2.5">${ec(i,'lower_tol',d.lower_tol||'—','font-mono font-semibold','color:'+(d.lower_tol?'#dc2626':'#bbb'))}</td>
-        <td class="px-3 py-2.5">${ec(i,'note',d.note||'','text-slate-400 text-[10px]')}</td>
-        ${thumbCell}
-        <td class="px-2 py-2.5"><button onclick="removeRow(${i})" class="del-btn opacity-0 transition-colors" style="color:#e0e0e0;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#e0e0e0'"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>`;
-    } else {
-      const tStr = d.tolerance_str || (d.upper_tol||d.lower_tol ? `${d.upper_tol||''}/${d.lower_tol||''}` : '—');
-      tr.innerHTML = `
-        <td class="px-3 py-2.5 text-slate-300 font-mono text-[10px]">${i+1}</td>
-        <td class="px-3 py-2.5">${ec(i,'label',d.label,'font-semibold text-slate-800')}</td>
-        <td class="px-3 py-2.5">${ec(i,'spec',d.spec,'font-mono font-semibold')}</td>
-        <td class="px-3 py-2.5">${ec(i,'unit',d.unit||'mm','font-mono text-slate-400')}</td>
-        <td class="px-3 py-2.5">${ec(i,'tolerance_str',tStr,'font-mono text-slate-500')}</td>
-        <td class="px-3 py-2.5">${ec(i,'max',d.max??'','font-mono font-semibold','color:#16a34a')}</td>
-        <td class="px-3 py-2.5">${ec(i,'min',d.min??'','font-mono font-semibold','color:#2563eb')}</td>
-        <td class="px-3 py-2.5">${ec(i,'note',d.note||'','text-slate-400 text-[10px]')}</td>
-        <td class="px-2 py-2.5"><button onclick="removeRow(${i})" class="del-btn opacity-0 transition-colors" style="color:#e0e0e0;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#e0e0e0'"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>`;
+"label"    : Short Korean name (e.g. "전체 길이","구멍 직경","폭","높이","반경","모따기"). Use drawing labels if shown.
+"spec"     : Nominal value as NUMBER (e.g. 8.15, 30).
+"unit"     : Unit string, default "mm". Use "deg" for angles.
+"tolerance": Exact tolerance string as written (e.g. "+0.05/-0","+-0.2","H7"). Empty "" if none.
+"note"     : Extra text like "Typ.","THRU ALL","4x","2x". Empty "" if none.
+"bbox"     : [x1,y1,x2,y2] normalized 0.0-1.0 coords of THIS dimension annotation (text+arrows) in image.
+             TIGHT box: cover only this dimension's text/arrows, not the whole drawing.
+             x1<x2, y1<y2, all values 0.0-1.0.
+
+Rules:
+- Extract EVERY visible dimension including small ones
+- "2x(Phi5.10)" -> label "구멍 직경 x2", spec 5.10
+- "4xR10" -> label "라운드 반경", spec 10
+- Return ONLY the JSON array, no markdown, no explanation.`;
+    const body={contents:[{parts:[{text:prompt},{inline_data:{mime_type:'application/pdf',data:b64}}]}],generationConfig:{responseMimeType:'application/json',temperature:0.05}};
+    setP('AI 응답 수신 중...',58);
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){const e=await res.json().catch(()=>({}));const m=e?.error?.message||'HTTP '+res.status;if(res.status===403||res.status===401)throw new Error('API 키가 유효하지 않습니다.');if(res.status===429)throw new Error('API 요청 한도 초과. 잠시 후 재시도하세요.');throw new Error('오류: '+m);}
+    const data=await res.json();
+    const raw=(data?.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join('')||'';
+    if(!raw)throw new Error('AI 응답이 비어 있습니다.');
+    let parsed;
+    try{parsed=JSON.parse(raw.replace(/```(?:json)?/gi,'').replace(/```/g,'').trim());}
+    catch{const m=raw.match(/\[[\s\S]*\]/);if(!m)throw new Error('응답 파싱 실패.');parsed=JSON.parse(m[0]);}
+    if(!Array.isArray(parsed)||!parsed.length)throw new Error('도면에서 치수를 찾을 수 없습니다.');
+    setP('근거 이미지 생성 중...',75);
+    dimensions=[];
+    for(let i=0;i<parsed.length;i++){
+      const d=parsed[i],tol=parseTol(d.tolerance||'');
+      let highlight=null;
+      if(Array.isArray(d.bbox)&&d.bbox.length===4){
+        const[nx1,ny1,nx2,ny2]=d.bbox.map(Number);
+        if(nx1>=0&&ny1>=0&&nx2<=1&&ny2<=1&&nx1<nx2&&ny1<ny2&&(nx2-nx1)>0.005&&(ny2-ny1)>0.005)
+          highlight=await makeHighlight(pdfImage.dataUrl,[nx1,ny1,nx2,ny2],(d.spec??'')+''+(d.unit||'mm'));
+      }
+      dimensions.push({label:d.label||'--',spec:d.spec??'',unit:d.unit||'mm',upperTol:tol.upper,lowerTol:tol.lower,note:d.note||'',highlight});
     }
+    setP('완료!',100);
+    renderTable();
+    showToast('✓ '+dimensions.length+'개 치수 추출 완료','success');
+  }catch(err){console.error(err);showError(err.message||'알 수 없는 오류가 발생했습니다.');}
+  finally{setLoading(false);}
+}
+
+function renderTable(){
+  const tbody=document.getElementById('dim-tbody');tbody.innerHTML='';
+  dimensions.forEach((d,i)=>{
+    const tr=document.createElement('tr');tr.className='dim-row fade-up';tr.style.borderBottom='1px solid #f5f5f5';
+    const thumb=d.highlight
+      ?'<img src="'+d.highlight+'" onclick="openPopup(\''+d.highlight+'\')" style="width:76px;height:54px;object-fit:cover;border-radius:5px;cursor:zoom-in;border:2px solid #DC1E1E;" title="클릭 → 확대"/>'
+      :'<div style="width:76px;height:54px;background:#f8f8f8;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#bbb;">좌표없음</div>';
+    tr.innerHTML='<td class="px-3 py-2" style="color:#fdd5af;font-size:10px;font-family:monospace;user-select:none;">'+(i+1)+'</td><td class="px-3 py-2">'+thumb+'</td><td class="px-3 py-2">'+ec(i,'label',d.label,'font-semibold text-slate-800')+'</td><td class="px-3 py-2">'+ec(i,'spec',d.spec,'font-mono font-bold')+'</td><td class="px-3 py-2">'+ec(i,'unit',d.unit,'font-mono text-slate-500')+'</td><td class="px-3 py-2">'+ec(i,'upperTol',d.upperTol,'font-mono font-bold','color:#16a34a')+'</td><td class="px-3 py-2">'+ec(i,'lowerTol',d.lowerTol,'font-mono font-bold','color:#dc2626')+'</td><td class="px-3 py-2">'+ec(i,'note',d.note||'','text-slate-400')+'</td><td class="px-2 py-2"><button onclick="removeRow('+i+')" class="del-btn opacity-0 transition-colors" style="color:#ddd;" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#ddd\'"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>';
     tbody.appendChild(tr);
   });
-
-  tbl.classList.remove('hidden'); tbl.classList.add('table');
-  other.classList.add('hidden');
-  document.getElementById('empty-st').classList.add('hidden');
-  document.getElementById('load-st').classList.add('hidden');
-
-  const cnt=document.getElementById('row-cnt'); cnt.textContent=dimensions.length+'개'; cnt.classList.remove('hidden');
-  const mb=document.getElementById('mode-badge'); mb.textContent=excelMode==='verify'?'검증용':'단순목록'; mb.classList.remove('hidden');
-  document.getElementById('add-btn').classList.remove('hidden'); document.getElementById('add-btn').classList.add('flex');
-  document.getElementById('tbl-footer').classList.remove('hidden');
-  ['excel-btn','excel-btn-m'].forEach(id=>{ const el=document.getElementById(id); el.classList.remove('hidden'); el.classList.add('flex'); });
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('dim-table').classList.remove('hidden');
+  document.getElementById('dim-table').classList.add('table');
+  const cnt=document.getElementById('row-count');cnt.textContent=dimensions.length+'개';cnt.classList.remove('hidden');
+  document.getElementById('add-row-btn').classList.remove('hidden');document.getElementById('add-row-btn').classList.add('flex');
+  document.getElementById('table-footer').classList.remove('hidden');
+  ['excel-btn','excel-btn-mobile'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('hidden');el.classList.add('flex');});
 }
 
-function ec(i,f,v,cls='',style=''){
-  const s=style?` style="${style}"`:'';
-  return `<input type="text" value="${esc(String(v??''))}" oninput="updateCell(${i},'${f}',this.value)" class="ecell ${cls}"${s}/>`;
-}
-function esc(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function updateCell(i,f,v){ dimensions[i][f]=v; }
-function removeRow(i){ dimensions.splice(i,1); if(!dimensions.length){resetTable();return;} renderTable(); }
-function addRow(){
-  dimensions.push({label:'새 항목',spec:0,unit:'mm',upper_tol:'',lower_tol:'',tolerance_str:'',max:0,min:0,note:'',bbox:{x1:10,y1:10,x2:100,y2:30}});
-  renderTable();
-}
-function resetTable(){
-  dimensions=[];
-  ['tbody-v','tbody-s'].forEach(id=>document.getElementById(id).innerHTML='');
-  ['tbl-v','tbl-s'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  document.getElementById('empty-st').classList.remove('hidden');
-  ['tbl-footer','row-cnt','mode-badge'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  ['add-btn','excel-btn','excel-btn-m'].forEach(id=>{ const el=document.getElementById(id); el.classList.add('hidden'); el.classList.remove('flex'); });
+function ec(i,field,val,cls,style){const s=style?' style="'+style+'"':'';return'<input type="text" value="'+esc(String(val??''))+'" oninput="updateCell('+i+',\''+field+'\',this.value)" class="ecell '+(cls||'')+'"'+s+'/>';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function updateCell(i,f,v){if(dimensions[i])dimensions[i][f]=v;}
+function removeRow(i){dimensions.splice(i,1);if(!dimensions.length){resetTable();return;}renderTable();}
+function addRow(){dimensions.push({label:'새 항목',spec:0,unit:'mm',upperTol:'',lowerTol:'',note:'',highlight:null});renderTable();const t=document.getElementById('dim-table');t.parentElement.scrollTop=t.parentElement.scrollHeight;}
+function resetTable(){dimensions=[];document.getElementById('dim-tbody').innerHTML='';document.getElementById('dim-table').classList.add('hidden');document.getElementById('empty-state').classList.remove('hidden');document.getElementById('table-footer').classList.add('hidden');document.getElementById('row-count').classList.add('hidden');['add-row-btn','excel-btn','excel-btn-mobile'].forEach(id=>{const el=document.getElementById(id);el.classList.add('hidden');el.classList.remove('flex');});}
+
+function openPopup(src){document.getElementById('popup-img').src=src;document.getElementById('img-popup').classList.add('open');}
+function closePopup(){document.getElementById('img-popup').classList.remove('open');}
+
+// dataURL → Uint8Array (ExcelJS용)
+function dataUrlToUint8(dataUrl){
+  const b64=dataUrl.split(',')[1];
+  const bin=atob(b64);
+  const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return arr;
 }
 
-// 이미지 팝업
-function showPopup(src){
-  document.getElementById('popup-img').src=src;
-  document.getElementById('img-popup').classList.add('open');
-}
-
-// ── EXCEL EXPORT ───────────────────────────────────────
 async function exportExcel(){
-  if(!dimensions.length){ showToast('추출된 데이터가 없습니다.','error'); return; }
-  showToast('Excel 생성 중...','info');
-  if(excelMode==='verify') await exportVerifyExcel();
-  else exportSimpleExcel();
-}
+  if(!dimensions.length){showToast('추출된 데이터가 없습니다.','error');return;}
+  showToast('Excel 생성 중... (이미지 포함)','info');
+  try{
+    const wb = new ExcelJS.Workbook();
+    wb.creator='INTOPS';
+    wb.created=new Date();
 
-// 단순 목록
-function exportSimpleExcel(){
-  const rows = dimensions.map((d,i)=>({
-    'No':i+1, '치수명':d.label||'', 'Spec':d.spec||'', '단위':d.unit||'mm',
-    '공차':d.tolerance_str||(d.upper_tol||d.lower_tol?`${d.upper_tol||''}/${d.lower_tol||''}`:''),
-    'Max':d.max||'', 'Min':d.min||'', '비고':d.note||''
-  }));
-  const ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:4},{wch:24},{wch:10},{wch:7},{wch:16},{wch:10},{wch:10},{wch:28}];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'치수 목록');
-  const fn=`INTOPS_치수목록_${(currentFile?.name||'drawing').replace('.pdf','')}_${today()}.xlsx`;
-  XLSX.writeFile(wb,fn); showToast(`✓ ${fn} 저장 완료`,'success');
-}
+    const ws = wb.addWorksheet('치수 검증표');
 
-// 검증용 (공차분리 + 근거이미지 base64 임베드)
-async function exportVerifyExcel(){
-  const wb = XLSX.utils.book_new();
-
-  // ── 시트1: 치수 검증표 ──
-  const header = ['No.','치수명','Spec','단위','상한공차(Upper)','하한공차(Lower)','Max','Min','비고','근거이미지위치(bbox)'];
-  const aoa = [
-    [`INTOPS · 2D Drawing to Excel — 치수 검증표`],
-    [`파일: ${currentFile?.name||''}  |  추출: ${new Date().toLocaleString('ko-KR')}  |  AI: Gemini 2.5 Flash`],
-    [],
-    header
-  ];
-
-  dimensions.forEach((d,i) => {
-    const bbox = d.bbox || {};
-    aoa.push([
-      i+1, d.label||'', d.spec??'', d.unit||'mm',
-      d.upper_tol||'—', d.lower_tol||'—',
-      d.max??'', d.min??'',
-      d.note||'',
-      bbox.x1!=null ? `x1:${bbox.x1} y1:${bbox.y1} x2:${bbox.x2} y2:${bbox.y2}` : '—'
-    ]);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:4},{wch:24},{wch:10},{wch:7},{wch:14},{wch:14},{wch:10},{wch:10},{wch:28},{wch:34}];
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:9}},{s:{r:1,c:0},e:{r:1,c:9}}];
-  XLSX.utils.book_append_sheet(wb, ws, '치수 검증표');
-
-  // ── 시트2: 근거이미지 시트 ──
-  // 각 치수의 하이라이트 이미지를 base64로 임베드
-  if (pdfCanvas) {
-    const imgAoa = [
-      ['INTOPS · 근거 이미지 (각 치수 위치 빨간박스 표시)'],
-      [],
-      ['No.', '치수명', 'Spec', '상한공차', '하한공차', '이미지 (아래 행)']
+    // ── 열 너비 정의 ──
+    // A:No  B:근거이미지  C:치수명  D:Spec  E:단위  F:상한공차  G:하한공차  H:비고
+    ws.columns=[
+      {key:'no',    width:5},
+      {key:'img',   width:52},   // 근거이미지 열 (px≈390)
+      {key:'label', width:22},
+      {key:'spec',  width:12},
+      {key:'unit',  width:7},
+      {key:'upper', width:12},
+      {key:'lower', width:12},
+      {key:'note',  width:28},
     ];
 
-    // 각 치수마다 행 구성 (이미지는 별도 행에 base64 데이터URL 삽입)
-    dimensions.forEach((d,i) => {
-      imgAoa.push([i+1, d.label||'', d.spec??'', d.upper_tol||'—', d.lower_tol||'—', `▶ No.${i+1} 이미지 → 별도 시트 참조`]);
+    // ── 헤더 스타일 ──
+    const HDR_FILL ={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A1A2E'}};
+    const HDR_FONT ={name:'Arial',bold:true,color:{argb:'FFFFFFFF'},size:10};
+    const HDR_ALIGN={vertical:'middle',horizontal:'center',wrapText:true};
+    const CELL_ALIGN={vertical:'middle',horizontal:'center',wrapText:true};
+    const BORDER_STYLE={style:'thin',color:{argb:'FFE0E0E0'}};
+    const BORDERS={top:BORDER_STYLE,left:BORDER_STYLE,bottom:BORDER_STYLE,right:BORDER_STYLE};
+
+    // 1행: 타이틀
+    ws.mergeCells('A1:H1');
+    const titleCell=ws.getCell('A1');
+    titleCell.value='INTOPS · 2D Drawing to Excel — 치수 검증표';
+    titleCell.font={name:'Arial',bold:true,color:{argb:'FFFFFFFF'},size:13};
+    titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF47B20'}};
+    titleCell.alignment={vertical:'middle',horizontal:'left',indent:1};
+    ws.getRow(1).height=30;
+
+    // 2행: 헤더
+    const hdrRow=ws.getRow(2);
+    ['No','근거 이미지','치수명','Spec\n(기준값)','단위','상한공차\n(Upper)','하한공차\n(Lower)','비고'].forEach((v,ci)=>{
+      const cell=hdrRow.getCell(ci+1);
+      cell.value=v; cell.font=HDR_FONT; cell.fill=HDR_FILL;
+      cell.alignment=HDR_ALIGN; cell.border=BORDERS;
     });
+    hdrRow.height=36;
 
-    const wsImg = XLSX.utils.aoa_to_sheet(imgAoa);
-    wsImg['!cols']=[{wch:5},{wch:22},{wch:10},{wch:12},{wch:12},{wch:40}];
-    XLSX.utils.book_append_sheet(wb, wsImg, '근거이미지 목록');
-  }
+    // ── 이미지 행 높이 (픽셀→pt 환산: 1pt≈0.75px, 목표 100px → 75pt)
+    const IMG_H_PT = 80;   // 행 높이 (pt)
+    const IMG_W_PX = 380;  // 이미지 너비 (px) — 열 너비 52 ≈ 390px
+    const IMG_H_PX = 100;  // 이미지 높이 (px)
 
-  // ── 시트3: 범례 ──
-  const wsLeg = XLSX.utils.aoa_to_sheet([
-    ['컬럼 안내 및 범례'],
-    [],
-    ['컬럼명','설명'],
-    ['No.','순번'],
-    ['치수명','도면에 표기된 항목명 (한글)'],
-    ['Spec','기준 명목값'],
-    ['상한공차','허용 최대 편차 (예: +0.05) — 녹색'],
-    ['하한공차','허용 최소 편차 (예: -0) — 적색'],
-    ['Max','= Spec + 상한공차 값'],
-    ['Min','= Spec - |하한공차 값|'],
-    ['근거이미지 위치','AI가 PDF에서 읽은 픽셀 좌표 (x1,y1,x2,y2)'],
-    [],
-    ['※ 웹앱 화면에서 각 행의 썸네일을 클릭하면 근거이미지 확대 확인 가능'],
-    ['※ 상한/하한공차 "—" = 도면에 공차 미표기'],
-    ['※ bbox 좌표는 PDF 렌더 이미지(scale=2×) 기준 픽셀 좌표'],
-  ]);
-  wsLeg['!cols']=[{wch:20},{wch:50}];
-  XLSX.utils.book_append_sheet(wb, wsLeg, '범례');
+    // ── 데이터 행 ──
+    for(let i=0;i<dimensions.length;i++){
+      const d=dimensions[i];
+      const ROW=i+3;  // 3행부터 데이터
+      const row=ws.getRow(ROW);
+      row.height=IMG_H_PT;
 
-  const fn=`INTOPS_치수검증표_${(currentFile?.name||'drawing').replace('.pdf','')}_${today()}.xlsx`;
-  XLSX.writeFile(wb, fn);
-  showToast(`✓ ${fn} 저장 완료 (공차분리+bbox 포함, 3시트)`, 'success');
+      const BG=(i%2===0)?'FFFFF9F6':'FFFFFFFF';
+      const CELL_FILL={type:'pattern',pattern:'solid',fgColor:{argb:BG}};
+
+      // A: No
+      const cNo=row.getCell(1);
+      cNo.value=i+1;
+      cNo.font={name:'Arial',bold:true,color:{argb:'FFF47B20'},size:10};
+      cNo.alignment=CELL_ALIGN; cNo.fill=CELL_FILL; cNo.border=BORDERS;
+
+      // B: 이미지 (근거)
+      const cImg=row.getCell(2);
+      cImg.fill=CELL_FILL; cImg.border=BORDERS; cImg.alignment=CELL_ALIGN;
+
+      if(d.highlight){
+        const imgData=dataUrlToUint8(d.highlight);
+        const imgId=wb.addImage({buffer:imgData, extension:'png'});
+        // tl: top-left(col 0-indexed, row 0-indexed), br: bottom-right
+        // 열 B = index 1, 행 = ROW-1 (0-indexed)
+        ws.addImage(imgId,{
+          tl:{col:1.05, row:ROW-1+0.05},
+          br:{col:2-0.05, row:ROW-0.05},
+          editAs:'oneCell'
+        });
+      } else {
+        cImg.value='(좌표 미추출)';
+        cImg.font={name:'Arial',color:{argb:'FFAAAAAA'},size:9,italic:true};
+      }
+
+      // C: 치수명
+      const cLabel=row.getCell(3);
+      cLabel.value=d.label??'';
+      cLabel.font={name:'Arial',bold:true,size:10};
+      cLabel.alignment={vertical:'middle',horizontal:'left',wrapText:true};
+      cLabel.fill=CELL_FILL; cLabel.border=BORDERS;
+
+      // D: Spec
+      const cSpec=row.getCell(4);
+      cSpec.value=isNaN(Number(d.spec))?d.spec:Number(d.spec);
+      cSpec.font={name:'Courier New',bold:true,size:11};
+      cSpec.alignment=CELL_ALIGN; cSpec.fill=CELL_FILL; cSpec.border=BORDERS;
+
+      // E: 단위
+      const cUnit=row.getCell(5);
+      cUnit.value=d.unit??'mm';
+      cUnit.font={name:'Courier New',size:10,color:{argb:'FF666666'}};
+      cUnit.alignment=CELL_ALIGN; cUnit.fill=CELL_FILL; cUnit.border=BORDERS;
+
+      // F: 상한공차
+      const cUp=row.getCell(6);
+      cUp.value=d.upperTol||'—';
+      cUp.font={name:'Courier New',bold:!!d.upperTol,color:{argb:d.upperTol?'FF16A34A':'FFAAAAAA'},size:10};
+      cUp.alignment=CELL_ALIGN; cUp.fill=CELL_FILL; cUp.border=BORDERS;
+
+      // G: 하한공차
+      const cDn=row.getCell(7);
+      cDn.value=d.lowerTol||'—';
+      cDn.font={name:'Courier New',bold:!!d.lowerTol,color:{argb:d.lowerTol?'FFDC2626':'FFAAAAAA'},size:10};
+      cDn.alignment=CELL_ALIGN; cDn.fill=CELL_FILL; cDn.border=BORDERS;
+
+      // H: 비고
+      const cNote=row.getCell(8);
+      cNote.value=d.note||'';
+      cNote.font={name:'Arial',size:9,color:{argb:'FF666666'}};
+      cNote.alignment={vertical:'middle',horizontal:'left',wrapText:true};
+      cNote.fill=CELL_FILL; cNote.border=BORDERS;
+    }
+
+    // ── 범례 행 ──
+    const legRow=ws.getRow(dimensions.length+3);
+    ws.mergeCells(`A${dimensions.length+3}:H${dimensions.length+3}`);
+    const legCell=ws.getCell(`A${dimensions.length+3}`);
+    legCell.value='■ 상한공차(녹색) = 최대 허용 편차  |  하한공차(적색) = 최소 허용 편차  |  — = 공차 미표기  |  근거이미지: 빨간 박스 = AI 추출 위치';
+    legCell.font={name:'Arial',italic:true,size:8,color:{argb:'FF888888'}};
+    legCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}};
+    legRow.height=16;
+
+    // ── 틀 고정 (헤더 2행) ──
+    ws.views=[{state:'frozen',ySplit:2}];
+
+    // ── 파일 저장 ──
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='INTOPS_치수검증_'+((currentFile?.name||'drawing').replace('.pdf',''))+'_'+today()+'.xlsx';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('✓ Excel 저장 완료 (근거이미지 포함)','success');
+
+  }catch(e){console.error(e);showToast('Excel 오류: '+e.message,'error');}
 }
 
-// ── LOADING ────────────────────────────────────────────
 function setLoading(on){
-  const btn=document.getElementById('ext-btn'), txt=document.getElementById('ext-txt');
-  const pw=document.getElementById('prog-wrap'), pf=document.getElementById('prog-fill');
-  const ls=document.getElementById('load-st'), es=document.getElementById('empty-st');
-  if(on){
-    btn.disabled=true; txt.textContent='분석 중...';
-    pw.classList.remove('hidden');
-    pf.classList.remove('prog-anim'); void pf.offsetWidth; pf.classList.add('prog-anim');
-    if(!dimensions.length){ es.classList.add('hidden'); ls.classList.remove('hidden'); ls.classList.add('flex'); }
-  } else {
-    btn.disabled=false; txt.textContent='치수 추출 시작';
-    pw.classList.add('hidden');
-    ls.classList.add('hidden'); ls.classList.remove('flex');
-    if(!dimensions.length) es.classList.remove('hidden');
-  }
+  const btn=document.getElementById('extract-btn'),txt=document.getElementById('extract-btn-text'),pw=document.getElementById('progress-wrap'),ls=document.getElementById('loading-state'),es=document.getElementById('empty-state');
+  if(on){btn.disabled=true;txt.textContent='분석 중...';pw.classList.remove('hidden');if(!dimensions.length){es.classList.add('hidden');ls.classList.remove('hidden');ls.classList.add('flex');}}
+  else{btn.disabled=false;txt.textContent='치수 추출 시작';pw.classList.add('hidden');ls.classList.add('hidden');ls.classList.remove('flex');if(!dimensions.length)es.classList.remove('hidden');}
 }
-function setProg(label,sub){
-  const l=document.getElementById('prog-label'), s=document.getElementById('prog-sub');
-  if(l) l.textContent=label; if(s) s.textContent=sub;
-}
-
-// ── UI HELPERS ─────────────────────────────────────────
-function showErr(msg){ const b=document.getElementById('err-box'); document.getElementById('err-txt').textContent=msg; b.classList.remove('hidden'); b.classList.add('flex'); }
-function hideErr(){ const b=document.getElementById('err-box'); b.classList.add('hidden'); b.classList.remove('flex'); }
-let toastTmr;
-function showToast(msg,type='info'){
-  const el=document.getElementById('toast');
-  el.style.background={success:'#16a34a',error:'#dc2626',info:'#1A1A2E'}[type]||'#1A1A2E';
-  el.textContent=msg; el.classList.add('show');
-  clearTimeout(toastTmr); toastTmr=setTimeout(()=>el.classList.remove('show'),3500);
-}
-function today(){ const d=new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; }
+function setP(msg,pct){const lbl=document.getElementById('progress-label'),fill=document.getElementById('progress-fill'),lm=document.getElementById('loading-msg');if(lbl)lbl.textContent=msg;if(fill)fill.style.width=pct+'%';if(lm)lm.textContent=msg;}
+function today(){const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+function showError(m){const b=document.getElementById('error-box');document.getElementById('error-text').textContent=m;b.classList.remove('hidden');b.classList.add('flex');}
+function hideError(){const b=document.getElementById('error-box');b.classList.add('hidden');b.classList.remove('flex');}
+let _tt;
+function showToast(m,t){const el=document.getElementById('toast');el.style.background={success:'#16a34a',error:'#dc2626',info:'#1A1A2E'}[t]||'#1A1A2E';el.textContent=m;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3200);}
 </script>
 </body>
 </html>
